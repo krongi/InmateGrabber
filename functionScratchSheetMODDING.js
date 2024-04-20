@@ -1,4 +1,4 @@
-const arrayVar = []
+// const arrayVar = []
 const inmateArray = []
 const listInmateArray = []
 const bookingArray = []
@@ -22,17 +22,38 @@ const balanceUpdatedID = "lblBalanceUpdated"
 const tableHeadings = ["Charge", "Court Case #", "Bond", "Court Date", "Disposition"]
 const charArray = Array.from({ length: 26 }, (_, i) => String.fromCharCode('A'.charCodeAt(0) + i));
 
-function openWindow(url) {
-    let win = window.open(url, winTarget)
-    win.blur()
-    window.focus()
-    return win
-
+/* 
+listInmates is tested working properly. 
+*/
+async function listInmates(arrayIn, characterArray) {
+    for(i in characterArray) {
+        document.getElementById("txtName").value = charArray[i];
+        SubmitInmateSearchRequest();
+        await sleep(1)
+        await populateInmateArray(arrayIn, characterArray)
+        if (i+1 == characterArray.length) {
+            document.getElementById("txtName").value = ""
+        }
+    }
+    document.getElementById("txtName").value = ""
+    getInmateInfo(arrayIn)
+    await detailedDataPull(urlArray, inmateArray)
+    let downDate = Date.now().toString()
+    void downBlob(arrayIn, "inmateList" + downDate + ".sem")
+    void downBlob(bookingArray, "bookingList" + downDate + ".sem")
+    void downBlob(bookingArray, "inmateCrimes" + downDate + ".json")
 }
 
-function closeWindow(winIn) {
-    winIn.close()
-    return 0
+/* 
+populateInmateArray seems to work fine as well. 
+*/
+function populateInmateArray(arrayIn, characterArray) {
+    console.log(characterArray[i]);
+    for (j = 1; j < document.getElementById("divResponse").getElementsByTagName("TR").length; j++) {
+        arrayIn.push(document.getElementById("divResponse").getElementsByTagName("TR")[j].innerText)
+        console.log(arrayIn.length)   
+    }
+    return arrayIn
 }
 
 /* 
@@ -46,54 +67,24 @@ function getInmateInfo(inputList) {
     }
 }
 
-function populateInmateArray(arrayIn, characterArray) {
-    console.log(characterArray[i]);
-    for (j = 1; j < document.getElementById("divResponse").getElementsByTagName("TR").length; j++) {
-        arrayIn.push(document.getElementById("divResponse").getElementsByTagName("TR")[j].innerText)
-        console.log(arrayIn.length)   
-    }
-    return arrayIn
-}
-
 /* 
-listInmates is tested working properly. 
+This function is just a wrapper that executes the generateInmateObject function which returns more detailed data after looping through each booking number
 */
-async function listInmates(arrayIn, characterArray) {
-    for(i in characterArray) {
-        document.getElementById("txtName").value = charArray[i];
-        SubmitInmateSearchRequest();
+async function detailedDataPull(urlList, arrayIn) {
+    for (i in urlList) {
+        const passToGetCrimes = await generateInmateObject(urlList[i], arrayIn)
+        console.log(passToGetCrimes)
         await sleep(1)
-        await populateInmateArray(arrayIn, characterArray)
     }
-    getInmateInfo(arrayIn)
-    // let downDate = Date.now().toString()
-    // void downBlob(arrayIn, "inmateList" + downDate + ".sem")
-    // void downBlob(bookingArray, "bookingList" + downDate + ".sem")
 }
 
 /* 
-sleep function appears to be working as well within the context of listInmates
+This function is responsible for opening up the properurl and then generating an object with several keys with values pulled from the page, it then runs a for loop to populate the crimeObject which is hen fed into singleInmate.crimes before pushing singleInmate to the outbound array
 */
-async function sleep(seconds) {
-    return new Promise((resolve) => setTimeout(resolve, seconds * 1000));
-}
-
-/* 
-downBlob tested working within the context of listInmates.
-*/
-function downBlob(dataIn, fileName) {
-    var blob = new Blob([dataIn], {type: 'text/plain'}),
-    a    = document.createElement('a')
-    a.download = fileName
-    a.href = window.URL.createObjectURL(blob)
-    a.dataset.downloadurl =  ['text/plain', a.download, a.href].join(':')
-    a.click()
-}
-
 async function generateInmateObject(url, arrayIn) {
     const win = await openWindow(url)
     await sleep(1)
-    let singleInmate = {name: `${win.document.getElementById(nameID).innerText}`, bookingNumber: `${win.document.getElementById(bookingID).innerText}`, dob: `${win.document.getElementById(dobID).innerText}`, arrestedBy: `${win.document.getElementById(arrestedByID).innerText}`, arrestDate: `${win.document.getElementById(arrestDateID).innerText}`, debt: `${win.document.getElementById(debtBalanceID).innerText}`, money: `${win.document.getElementById(trustBalanceID).innerText}`, crimes: `${getCrimes()}`}
+    let singleInmate = {name: `${win.document.getElementById(nameID).innerText}`, bookingNumber: `${win.document.getElementById(bookingID).innerText}`, dob: `${win.document.getElementById(dobID).innerText}`, arrestedBy: `${win.document.getElementById(arrestedByID).innerText}`, arrestDate: `${win.document.getElementById(arrestDateID).innerText}`, debt: `${win.document.getElementById(debtBalanceID).innerText}`, money: `${win.document.getElementById(trustBalanceID).innerText}`, crimes: []}
     // singleInmate.crimes = await getCrimes()
     let crimeObject = []
         for (i in win.document.getElementsByTagName("TR")) {
@@ -109,50 +100,40 @@ async function generateInmateObject(url, arrayIn) {
     return singleInmate
 }
 
-async function populateInmateObject(urlList, arrayIn) {
-    for (i in urlList) {
-        const passToGetCrimes = await generateInmateObject(urlList[i], arrayIn)
-        console.log(passToGetCrimes)
-        await sleep(1)
-    }
+/* 
+downBlob tested working within the context of listInmates.
+*/
+function downBlob(dataIn, fileName) {
+    var blob = new Blob([dataIn], {type: 'text/plain'}),
+    a    = document.createElement('a')
+    a.download = fileName
+    a.href = window.URL.createObjectURL(blob)
+    a.dataset.downloadurl =  ['text/plain', a.download, a.href].join(':')
+    a.click()
 }
 
-function getCrimes() {
-    let crimeObject = []
-        for (j in this.document.getElementsByTagName("TR")) {
-            if (j > 0) {
-                let innerText = this.document.getElementsByTagName("TR")[j].innerText
-                innerText = innerText.replaceAll("\t", " ")
-                crimeObject.push(innerText)            
-            }            
-        }
-    return crimeObject
+// Opens the browser url
+function openWindow(url) {
+    let win = window.open(url, winTarget)
+    return win
+
+}
+// Closes the browser opened by the previous function
+function closeWindow(winIn) {
+    winIn.close()
+    return 0
 }
 
+/* 
+sleep function appears to be working as well within the context of listInmates
+*/
+async function sleep(seconds) {
+    return new Promise((resolve) => setTimeout(resolve, seconds * 1000));
+}
 
 /* This function is to grab more info than the initial listInmates() function does. It uses the booking
 url to select the object and proceeds to create a new object for each person I'll look into changing this
 later on. I'm sure it's not the best way to go about it*/
-
-async function getMoreInfo(url) {
-    // await openWindow(url, "_blank")
-    let win = window.open(url)
-    let singleInmate
-    singleInmate =  await populateInmateObject() //.then(singleInmate.crimes = getCrimes()).then(inmateArray.push(singleInmate))
-    singleInmate.crimes = await getCrimes()//.then(win.close())
-    promiseArray.push(new Promise (function(resolve, reject) {
-        console.log("New promise created....\n\n\n\n"), function(singleInmate) {resolve(singleInmate)}
-    }))
-    win.close()
-}
-
-async function main(urlArray) {
-    for (i in urlArray) {
-        // let myInterval = setTimeout(getMoreInfo(urlArray[i]), 1500);
-        await getMoreInfo(urlArray[i])
-        Promise.all(promiseArray)
-    }
-}
 
 function generateRequest(urlList) {
     let xhttp = new XMLHttpRequest();
