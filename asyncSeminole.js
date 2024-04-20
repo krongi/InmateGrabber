@@ -4,8 +4,6 @@ const bookingArray = []
 const deepCrimesArray = []
 const urlArray = []
 const winTarget = "_blank"
-
-
 const promiseArray = []
 const searchURL = 'https://www.seminolesheriff.org/WebBond/Inmates.aspx'
 const deepURL = 'https://www.seminolesheriff.org/WebBond/inmate.aspx?bookingnumber='
