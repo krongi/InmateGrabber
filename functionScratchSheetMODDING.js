@@ -1,4 +1,3 @@
-// const arrayVar = []
 const inmateArray = []
 const listInmateArray = []
 const bookingArray = []
@@ -6,7 +5,6 @@ const deepCrimesArray = []
 const urlArray = []
 const winTarget = "_blank"
 
-// const win = {}
 
 const promiseArray = []
 const searchURL = 'https://www.seminolesheriff.org/WebBond/Inmates.aspx'
