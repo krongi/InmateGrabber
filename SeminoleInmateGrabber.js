@@ -1,9 +1,10 @@
-var arrayVar = []
-var bookingArray = []
-var inmateArray = []
-var urlArray = []
-var thisWindow
-
+const inmateArray = []
+const listInmateArray = []
+const bookingArray = []
+const deepCrimesArray = []
+const urlArray = []
+const winTarget = "_blank"
+const promiseArray = []
 const searchURL = 'https://www.seminolesheriff.org/WebBond/Inmates.aspx'
 const deepURL = 'https://www.seminolesheriff.org/WebBond/inmate.aspx?bookingnumber='
 const bookingID = "lblBookingNumber"
@@ -15,7 +16,45 @@ const debtBalanceID = "lblDebtBalance"
 const trustBalanceID = "lblTrustBalance"
 const balanceUpdatedID = "lblBalanceUpdated"
 const tableHeadings = ["Charge", "Court Case #", "Bond", "Court Date", "Disposition"]
+const charArray = Array.from({ length: 26 }, (_, i) => String.fromCharCode('A'.charCodeAt(0) + i));
 
+/* 
+listInmates is tested working properly. 
+*/
+async function listInmates(arrayIn, characterArray) {
+    for(i in characterArray) {
+        document.getElementById("txtName").value = charArray[i];
+        SubmitInmateSearchRequest();
+        await sleep(1)
+        await populateInmateArray(arrayIn, characterArray)
+        if (i+1 == characterArray.length) {
+            document.getElementById("txtName").value = ""
+        }
+    }
+    document.getElementById("txtName").value = ""
+    getInmateInfo(arrayIn)
+    await detailedDataPull(urlArray, inmateArray)
+    let downDate = Date.now().toString()
+    void downBlob(arrayIn, "inmateList" + downDate + ".sem")
+    void downBlob(bookingArray, "bookingList" + downDate + ".sem")
+    void downBlob(JSON.stringify(inmateArray), "inmateCrimes" + downDate + ".json")
+}
+
+/* 
+populateInmateArray seems to work fine as well. 
+*/
+function populateInmateArray(arrayIn, characterArray) {
+    // console.log(characterArray[j]);
+    for (j = 1; j < document.getElementById("divResponse").getElementsByTagName("TR").length; j++) {
+        arrayIn.push(document.getElementById("divResponse").getElementsByTagName("TR")[j].innerText)
+        console.log(arrayIn.length)   
+    }
+    return arrayIn
+}
+
+/* 
+getInmateInfo is also tested working within the context of listInmates
+*/
 function getInmateInfo(inputList) {
     for (i in inputList) {
         let bookingNumber = inputList[i].slice(-17, -5)
@@ -24,75 +63,85 @@ function getInmateInfo(inputList) {
     }
 }
 
-async function getCrimes(crimeObject){
-    for (i in thisWindow.document.getElementsByTagName("TR")) {
-        if (i != 0) {
-            crimeObject.push(thisWindow.document.getElementsByTagName("TR")[i].innerText)
-        }
+
+/* 
+This function is just a wrapper that executes the generateInmateObject function which returns more detailed data after looping through each booking number
+*/
+async function detailedDataPull(urlList, arrayIn) {
+    for (i in urlList) {
+        const passToGetCrimes = await generateInmateObject(urlList[i], arrayIn)
+        console.log(passToGetCrimes)
+        await sleep(1)
     }
-    return crimeObject
 }
 
-async function generateInmateObjects(bookingNumberList) {
-    for (i in bookingNumberList) {
-        let inmateObject = {name: '', bookingNumber: '', dob: '', arrestedBy: '', arrestDate: '', debt: '', money: ''}
-        console.log(bookingNumberList[i])
-        thisWindow = window.open(deepURL + bookingNumberList[i],this)
-        await sleep(1)
-        inmateObject.name = thisWindow.document.getElementById(nameID).innerText
-        inmateObject.bookingNumber = thisWindow.document.getElementById(bookingID).innerText
-        inmateObject.dob = thisWindow.document.getElementById(dobID).innerText
-        inmateObject.arrestedBy = thisWindow.document.getElementById(arrestedByID).innerText
-        inmateObject.arrestDate = thisWindow.document.getElementById(arrestDateID).innerText
-        inmateObject.debt = thisWindow.document.getElementById(debtBalanceID).innerText
-        inmateObject.money = thisWindow.document.getElementById(trustBalanceID).innerText
-        let crimeObject = []
-        for (j in thisWindow.document.getElementsByTagName("TR")) {
-            if (j > 0) {
-                let innerText = thisWindow.document.getElementsByTagName("TR")[j].innerText
+/* 
+This function is responsible for opening up the properurl and then generating an object with several keys with values pulled from the page, it then runs a for loop to populate the crimeObject which is hen fed into singleInmate.crimes before pushing singleInmate to the outbound array
+*/
+async function generateInmateObject(url, arrayIn) {
+    const win = await openWindow(url)
+    await sleep(1)
+    let singleInmate = {name: `${win.document.getElementById(nameID).innerText}`, bookingNumber: `${win.document.getElementById(bookingID).innerText}`, dob: `${win.document.getElementById(dobID).innerText}`, arrestedBy: `${win.document.getElementById(arrestedByID).innerText}`, arrestDate: `${win.document.getElementById(arrestDateID).innerText}`, debt: `${win.document.getElementById(debtBalanceID).innerText}`, money: `${win.document.getElementById(trustBalanceID).innerText}`, crimes: {}}
+    let crimeObject = []
+        for (i in win.document.getElementsByTagName("TR")) {
+            if (i > 0) {
+                let innerText = win.document.getElementsByTagName("TR")[i].innerText
                 innerText = innerText.replaceAll("\t", " ")
                 crimeObject.push(innerText)            
-            }
+            }            
         }
-        inmateObject.crimes = crimeObject
-        inmateArray.push(inmateObject)
-        console.log(inmateArray[i])
-        await sleep(1)
-        thisWindow.document.click
-    }
-    return inmateArray
+    singleInmate.crimes = crimeObject
+    arrayIn.push(singleInmate)
+    await closeWindow(win)
+    return singleInmate
 }
 
-async function listInmates() {
-    let charArray = Array.from({ length: 26 }, (_, i) => String.fromCharCode('A'.charCodeAt(0) + i));
-    thisWindow = window.open(searchURL)
-    for(i in charArray) {
-        let textBox = document.getElementById("txtName");
-        textBox.value = charArray[i];
-        SubmitInmateSearchRequest();
-        await sleep(2);
-        console.log(charArray[i]);
-        for (j = 1; j < document.getElementById("divResponse").getElementsByTagName("TR").length; j++) {
-
-            arrayVar.push(document.getElementById("divResponse").getElementsByTagName("TR")[j].innerText)
-            console.log(arrayVar.length)   
-        }
-    }
-    getInmateInfo(arrayVar)
-    let downDate = Date.now().toString()
-    void downBlob(arrayVar, "inmateList" + downDate + ".sem")
-    void downBlob(bookingArray, "bookingList" + downDate + ".sem")
-}
-
-async function sleep(seconds) {
-    return new Promise((resolve) => setTimeout(resolve, seconds * 1000));
-}
-
-function downBlob(data, fileName) {
-    var blob = new Blob([data], {type: 'text/plain'}),
+/* 
+downBlob tested working within the context of listInmates.
+*/
+function downBlob(dataIn, fileName) {
+    var blob = new Blob([dataIn], {type: 'text/plain'}),
     a    = document.createElement('a')
     a.download = fileName
     a.href = window.URL.createObjectURL(blob)
     a.dataset.downloadurl =  ['text/plain', a.download, a.href].join(':')
     a.click()
+}
+
+// Opens the browser url
+function openWindow(url) {
+    let win = window.open(url, winTarget)
+    return win
+
+}
+// Closes the browser opened by the previous function
+function closeWindow(winIn) {
+    winIn.close()
+    return 0
+}
+
+/* 
+sleep function appears to be working as well within the context of listInmates
+*/
+async function sleep(seconds) {
+    return new Promise((resolve) => setTimeout(resolve, seconds * 1000));
+}
+
+/* This function is to grab more info than the initial listInmates() function does. It uses the booking
+url to select the object and proceeds to create a new object for each person I'll look into changing this
+later on. I'm sure it's not the best way to go about it*/
+
+function generateRequest(urlList) {
+    let xhttp = new XMLHttpRequest();
+    xhttp.responseXML
+    xhttp.onreadystatechange = function() {
+    if (this.readyState == 4 && this.status == 200) {
+        console.log(this.responseText);
+    }
+    };
+    for(i in urlList) {
+    xhttp.open("GET", urlList[i], true);
+    xhttp.send();
+    let inmateObject = {name: `${win.document.getElementById(nameID).innerText}`, bookingNumber: `${win.document.getElementById(bookingID).innerText}`, dob: `${win.document.getElementById(dobID).innerText}`, arrestedBy: `${win.document.getElementById(arrestedByID).innerText}`, arrestDate: `${win.document.getElementById(arrestDateID).innerText}`, debt: `${win.document.getElementById(debtBalanceID).innerText}`, money: `${win.document.getElementById(trustBalanceID).innerText}`, crimes: {}}
+    }
 }
