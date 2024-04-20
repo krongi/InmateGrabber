@@ -33,11 +33,12 @@ async function listInmates(arrayIn, characterArray) {
     }
     document.getElementById("txtName").value = ""
     getInmateInfo(arrayIn)
-    await detailedDataPull(urlArray, inmateArray)
+    const finalData = await detailedDataPull(urlArray, inmateArray)
     let downDate = Date.now().toString()
     void downBlob(arrayIn, "inmateList" + downDate + ".sem")
     void downBlob(bookingArray, "bookingList" + downDate + ".sem")
     void downBlob(JSON.stringify(inmateArray), "inmateCrimes" + downDate + ".json")
+    return finalData
 }
 
 /* 
@@ -68,11 +69,13 @@ function getInmateInfo(inputList) {
 This function is just a wrapper that executes the generateInmateObject function which returns more detailed data after looping through each booking number
 */
 async function detailedDataPull(urlList, arrayIn) {
+    // const passToGetCrimes = {}
     for (i in urlList) {
-        const passToGetCrimes = await generateInmateObject(urlList[i], arrayIn)
+        let passToGetCrimes = await generateInmateObject(urlList[i], arrayIn)
         console.log(passToGetCrimes)
         await sleep(1)
     }
+    // return passToGetCrimes
 }
 
 /* 
