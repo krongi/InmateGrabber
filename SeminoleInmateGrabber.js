@@ -85,15 +85,23 @@ async function generateInmateObject(url, arrayIn) {
     const win = await openWindow(url)
     await sleep(1)
     let singleInmate = {name: `${win.document.getElementById(nameID).innerText}`, bookingNumber: `${win.document.getElementById(bookingID).innerText}`, dob: `${win.document.getElementById(dobID).innerText}`, arrestedBy: `${win.document.getElementById(arrestedByID).innerText}`, arrestDate: `${win.document.getElementById(arrestDateID).innerText}`, debt: `${win.document.getElementById(debtBalanceID).innerText}`, money: `${win.document.getElementById(trustBalanceID).innerText}`, crimes: {}}
-    let crimeObject = []
+    let crimeList = []
         for (i in win.document.getElementsByTagName("TR")) {
-            if (i > 0) {
+            if (i > 0) {   
+                let crimeObject = {}
+                const re = new RegExp("[0-9][0-9]?\\s?", "g")
                 let innerText = win.document.getElementsByTagName("TR")[i].innerText
-                innerText = innerText.replaceAll("\t", " ")
-                crimeObject.push(innerText)            
-            }            
+                let innerTextSplitTabs = innerText.split("\t")
+                let innerTextRemoveDigits = innerTextSplitTabs[1].replaceAll(re, "")
+                crimeObject.charge = innerTextRemoveDigits
+                crimeObject.case = innerTextSplitTabs[2]
+                crimeObject.bond = innerTextSplitTabs[3]
+                crimeObject.courtDate = innerTextSplitTabs[4]
+                crimeObject.disposition = innerTextSplitTabs[5]
+                crimeList.push(crimeObject)                     
+            }
         }
-    singleInmate.crimes = crimeObject
+    singleInmate.crimes = crimeList
     arrayIn.push(singleInmate)
     await closeWindow(win)
     return singleInmate
@@ -148,3 +156,5 @@ function generateRequest(urlList) {
     let inmateObject = {name: `${win.document.getElementById(nameID).innerText}`, bookingNumber: `${win.document.getElementById(bookingID).innerText}`, dob: `${win.document.getElementById(dobID).innerText}`, arrestedBy: `${win.document.getElementById(arrestedByID).innerText}`, arrestDate: `${win.document.getElementById(arrestDateID).innerText}`, debt: `${win.document.getElementById(debtBalanceID).innerText}`, money: `${win.document.getElementById(trustBalanceID).innerText}`, crimes: {}}
     }
 }
+
+
