@@ -42,3 +42,5 @@ visit.smartjailmail.com/compatibility/scripts/DetectRTC.js
 visit.smartjailmail.com/compatibility/scripts/janus/jquery.2.70.blockUI.min.js
 promiseTesting.js
 WebResource.axd
+detail_inmate_info.json
+general_inmate_info.json
